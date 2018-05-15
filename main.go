@@ -1,63 +1,54 @@
 package main
 
 import (
+	"log"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
+	"github.com/nattasakatiz/gorestapi/controllers/scheduleUserController"
+	"github.com/nattasakatiz/gorestapi/db"
+	"github.com/nattasakatiz/gorestapi/middlewares"
 )
 
-var DB = make(map[string]string)
+const (
+	Port = "8080"
+)
 
-func setupRouter() *gin.Engine {
-	// Disable Console Color
-	// gin.DisableConsoleColor()
-	r := gin.Default()
-
-	// Ping test
-	r.GET("/ping", func(c *gin.Context) {
-		c.String(200, "pong")
-	})
-
-	// Get user value
-	r.GET("/user/:name", func(c *gin.Context) {
-		user := c.Params.ByName("name")
-		value, ok := DB[user]
-		if ok {
-			c.JSON(200, gin.H{"user": user, "value": value})
-		} else {
-			c.JSON(200, gin.H{"user": user, "status": "no value"})
-		}
-	})
-
-	// Authorized group (uses gin.BasicAuth() middleware)
-	// Same than:
-	// authorized := r.Group("/")
-	// authorized.Use(gin.BasicAuth(gin.Credentials{
-	//	  "foo":  "bar",
-	//	  "manu": "123",
-	//}))
-	authorized := r.Group("/", gin.BasicAuth(gin.Accounts{
-		"foo":  "bar", // user:foo password:bar
-		"manu": "123", // user:manu password:123
-	}))
-
-	authorized.POST("admin", func(c *gin.Context) {
-		user := c.MustGet(gin.AuthUserKey).(string)
-
-		// Parse JSON
-		var json struct {
-			Value string `json:"value" binding:"required"`
-		}
-
-		if c.Bind(&json) == nil {
-			DB[user] = json.Value
-			c.JSON(200, gin.H{"status": "ok"})
-		}
-	})
-
-	return r
+// INIT RUN BEFORE MAIN
+func init() {
+	db.Connect()
 }
 
+// MAIN FUNCTION
 func main() {
-	r := setupRouter()
-	// Listen and Server in 0.0.0.0:8080
-	r.Run(":8080")
+
+	// LOAD ENV
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	// SET UP GIN AS ROUTER
+	router := gin.Default()
+
+	router.RedirectTrailingSlash = true
+	router.RedirectFixedPath = true
+
+	// Middlewares
+	router.Use(middlewares.Connect)
+	router.Use(middlewares.ErrorHandler)
+
+	// Statics
+	router.Static("/public", "./public")
+
+	// Routes
+	router.GET("/", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, "/schedule-users")
+	})
+
+	router.GET("/schedule-users", scheduleUserController.List)
+
+	// Listen and Server (in port:8080)
+	router.Run(":" + Port)
 }
