@@ -10,18 +10,19 @@ import (
 	"github.com/nattasakatiz/gorestapi/models"
 )
 
-// New Schedule User
-func New(c *gin.Context) {
-	scheduleUser := models.ScheduleUser{}
-
-	c.HTML(http.StatusOK, "schedule-users/form", gin.H{
-		"title":        "New Schedule User",
-		"scheduleUser": scheduleUser,
-	})
+// All schedule-users
+func Index(c *gin.Context) {
+	db := c.MustGet("db").(*mgo.Database)
+	scheduleUsers := []models.ScheduleUser{}
+	err := db.C(models.CollectionScheduleUser).Find(nil).All(&scheduleUsers)
+	if err != nil {
+		c.Error(err)
+	}
+	c.JSON(http.StatusOK, gin.H{"title": "Schedule Users", "scheduleUsers": scheduleUsers})
 }
 
-// Create an scheduleUser
-func Create(c *gin.Context) {
+// Insert an scheduleUser
+func Insert(c *gin.Context) {
 	db := c.MustGet("db").(*mgo.Database)
 
 	scheduleUser := models.ScheduleUser{}
@@ -36,33 +37,6 @@ func Create(c *gin.Context) {
 		c.Error(err)
 	}
 	c.Redirect(http.StatusMovedPermanently, "/schedule-users")
-}
-
-// Edit an scheduleUser
-func Edit(c *gin.Context) {
-	db := c.MustGet("db").(*mgo.Database)
-	scheduleUser := models.ScheduleUser{}
-	oID := bson.ObjectIdHex(c.Param("_id"))
-	err := db.C(models.CollectionScheduleUser).FindId(oID).One(&scheduleUser)
-	if err != nil {
-		c.Error(err)
-	}
-
-	c.HTML(http.StatusOK, "schedule-users/form", gin.H{
-		"title":        "Edit Schedule User",
-		"scheduleUser": scheduleUser,
-	})
-}
-
-// List all schedule-users
-func List(c *gin.Context) {
-	db := c.MustGet("db").(*mgo.Database)
-	scheduleUsers := []models.ScheduleUser{}
-	err := db.C(models.CollectionScheduleUser).Find(nil).All(&scheduleUsers)
-	if err != nil {
-		c.Error(err)
-	}
-	c.JSON(http.StatusOK, gin.H{"title": "Schedule Users", "scheduleUsers": scheduleUsers})
 }
 
 // Update an scheduleUser

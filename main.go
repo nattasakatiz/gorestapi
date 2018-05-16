@@ -47,7 +47,7 @@ func main() {
 		c.Redirect(http.StatusMovedPermanently, "/schedule-users")
 	})
 
-	router.GET("/schedule-users", scheduleUserController.List)
+	router.GET("/schedule-users", scheduleUserController.Index)
 
 	// Listen and Server (in port:8080)
 	router.Run(":" + Port)
